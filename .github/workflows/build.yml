@@ -15,7 +15,7 @@ jobs:
 
       - name: Extract ZIP
         run: |
-          unzip Husen_Hisab_no_otp_fixed-3.zip -d source
+          unzip Husen_Hisab_no_otp_fixed-3-4.zip -d source
           cp -a source/Husen_hisab-main/. .
 
       - name: Setup Java
