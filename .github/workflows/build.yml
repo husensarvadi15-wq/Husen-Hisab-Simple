@@ -1,39 +1,60 @@
 name: Build Husen Hisab APK
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Extract ZIP
+      - name: Extract ZIP Automatically
         run: |
-          unzip Husen_Hisab_no_otp_fixed-3-4.zip -d source
-          cp -a source/Husen_hisab-main/. .
+          mkdir -p app_source
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
 
-      - name: Setup Java
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: ZIP file not found!"
+            exit 1
+          fi
+
+          echo "Extracting $ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d app_source
+
+          echo "Extract completed"
+
+      - name: Show Extracted Files
+        run: |
+          find app_source -maxdepth 4 -type f
+
+      - name: Set Up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
-
       - name: Build APK
-        run: gradle assembleDebug
+        run: |
+          if [ -f app_source/gradlew ]; then
+            cd app_source
+          elif [ -f app_source/*/gradlew ]; then
+            cd app_source/*
+          else
+            echo "ERROR: Android Gradle project not found in ZIP!"
+            exit 1
+          fi
+
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Husen-Hisab-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: app_source/**/build/outputs/apk/debug/*.apk
+          
