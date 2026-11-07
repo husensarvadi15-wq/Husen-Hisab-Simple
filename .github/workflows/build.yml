@@ -1,4 +1,5 @@
-name: Build Husen Hisab APK
+
+name: Build Husen Hisab Customer Demo APK
 
 on:
   push:
@@ -26,31 +27,43 @@ jobs:
 
       - name: Extract ZIP
         run: |
-          mkdir -p www
-          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+          mkdir -p extracted
+
+          ZIP_FILE=$(find . -maxdepth 2 -type f -iname "*.zip" | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
             echo "ZIP file not found"
             exit 1
           fi
 
-          unzip -o "$ZIP_FILE" -d www
+          unzip -o "$ZIP_FILE" -d extracted
 
-          test -f www/index.html || {
-            echo "index.html not found"
+          PROJECT_DIR=$(find extracted -type f -name package.json -printf '%h\n' | head -n 1)
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "package.json not found in ZIP"
             exit 1
-          }
+          fi
+
+          if [ ! -f "$PROJECT_DIR/www/index.html" ]; then
+            echo "www/index.html not found inside project"
+            exit 1
+          fi
+
+          cp "$PROJECT_DIR/package.json" ./package.json
+          rm -rf www
+          cp -R "$PROJECT_DIR/www" ./www
 
       - name: Setup Capacitor
         run: |
-          npm init -y
+          npm install
           npm install @capacitor/core@6.2.1 @capacitor/android@6.2.1
           npm install --save-dev @capacitor/cli@6.2.1
 
           cat > capacitor.config.json <<'EOF'
           {
-            "appId": "com.husen.hisab",
-            "appName": "Husen Hisab",
+            "appId": "com.husen.hisab.demo",
+            "appName": "Husen Hisab Demo",
             "webDir": "www"
           }
           EOF
@@ -67,6 +80,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Husen-Hisab-APK
+          name: Husen-Hisab-Customer-Demo-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          
